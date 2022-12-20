@@ -540,3 +540,28 @@ class Deblurring2D(H_functions):
 
     def add_zeros(self, vec):
         return vec.clone().reshape(vec.shape[0], -1)
+
+# Deblurring for Lensless Imaging (https://github.com/Waller-Lab/LenslessLearning)
+class DeblurringPSF(H_functions):
+    def __init__(self, h):
+        self.h = h
+
+    def V(self, vec):
+        return self.mat_by_vec(self._V, vec.clone())
+
+    def Vt(self, vec):
+        return self.mat_by_vec(self._Vt, vec.clone())
+
+    def U(self, vec):
+        return self.mat_by_vec(self._U, vec.clone())
+
+    def Ut(self, vec):
+        return self.mat_by_vec(self._Ut, vec.clone())
+
+    def singulars(self):
+        return self._singulars
+
+    def add_zeros(self, vec):
+        out = torch.zeros(vec.shape[0], self._V.shape[0], device=vec.device)
+        out[:, :self._U.shape[0]] = vec.clone().reshape(vec.shape[0], -1)
+        return out
