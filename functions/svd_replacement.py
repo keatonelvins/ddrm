@@ -1,6 +1,7 @@
 import torch
 from scipy.fftpack import dct, idct
 import numpy.fft as fft
+import numpy as np
 
 class H_functions:
     """
@@ -549,7 +550,6 @@ def nextPow2(n):
 
 # Deblurring for Lensless Imaging (https://github.com/Waller-Lab/LenslessLearning)
 class DeblurringPSF(H_functions):
-    import numpy as np
     def __init__(self, h):
         pixel_start = (np.max(h) + np.min(h))/2
         x = np.ones(h.shape) * pixel_start
