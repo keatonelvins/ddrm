@@ -1,6 +1,7 @@
 import torch
 from scipy.fftpack import dct, idct
 import numpy.fft as fft
+import numpy as np
 
 class H_functions:
     """
