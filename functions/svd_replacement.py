@@ -1,4 +1,6 @@
 import torch
+from scipy.fftpack import dct, idct
+import numpy.fft as fft
 
 class H_functions:
     """
@@ -541,27 +543,51 @@ class Deblurring2D(H_functions):
     def add_zeros(self, vec):
         return vec.clone().reshape(vec.shape[0], -1)
 
+# Get nearest power of 2 that is larger than input (used for padding)
+def nextPow2(n):
+    return int(2**np.ceil(np.log2(n)))
+
 # Deblurring for Lensless Imaging (https://github.com/Waller-Lab/LenslessLearning)
 class DeblurringPSF(H_functions):
     def __init__(self, h):
-        self.h = h
+        pixel_start = (np.max(h) + np.min(h))/2
+        x = np.ones(h.shape) * pixel_start
+
+        init_shape = h.shape
+        padded_shape = [nextPow2(2*n - 1) for n in init_shape]
+        starti = (padded_shape[0]- init_shape[0])//2
+        endi = starti + init_shape[0]
+        startj = (padded_shape[1]//2) - (init_shape[1]//2)
+        endj = startj + init_shape[1]
+        hpad = np.zeros(padded_shape)
+        hpad[starti:endi, startj:endj] = h
+
+        self._singulars = dct(fft.ifftshift(hpad), norm="ortho")
+        #self._singulars, self._perm = self._singulars.sort(descending=True)
+
+        self.crop = lambda X: return X[starti:endi, startj:endj]
 
     def V(self, vec):
-        return self.mat_by_vec(self._V, vec.clone())
+        return self.crop(fft.fftshift(idct(vec)))
 
     def Vt(self, vec):
-        return self.mat_by_vec(self._Vt, vec.clone())
+        return dct(fft.ifftshift(vec))
 
     def U(self, vec):
-        return self.mat_by_vec(self._U, vec.clone())
+        return self.crop(fft.fftshift(idct(vec)))
 
     def Ut(self, vec):
-        return self.mat_by_vec(self._Ut, vec.clone())
+        return dct(fft.ifftshift(vec))
 
     def singulars(self):
         return self._singulars
 
-    def add_zeros(self, vec):
-        out = torch.zeros(vec.shape[0], self._V.shape[0], device=vec.device)
-        out[:, :self._U.shape[0]] = vec.clone().reshape(vec.shape[0], -1)
-        return out
+    def H(self, vec):
+        temp = self.Vt(vec)
+        singulars = self.singulars()
+        return self.U(singulars * temp)
+
+    def H_pinv(self, vec):
+        temp = self.Ut(vec)
+        singulars = self.singulars()
+        return self.V(singulars.I * temp)
