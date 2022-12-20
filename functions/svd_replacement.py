@@ -565,7 +565,7 @@ class DeblurringPSF(H_functions):
         self._singulars = dct(fft.ifftshift(hpad), norm="ortho")
         #self._singulars, self._perm = self._singulars.sort(descending=True)
 
-        self.crop = lambda X: return X[starti:endi, startj:endj]
+        self.crop = lambda X: X[starti:endi, startj:endj]
 
     def V(self, vec):
         return self.crop(fft.fftshift(idct(vec)))
