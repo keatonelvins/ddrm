@@ -551,13 +551,14 @@ def nextPow2(n):
 # Deblurring for Lensless Imaging (https://github.com/Waller-Lab/LenslessLearning)
 class DeblurringPSF(H_functions):
     def __init__(self, h):
-        self.init_shape = h.shape
-        self.padded_shape = [nextPow2(2*n - 1) for n in self.init_shape]
+        init_shape = h.shape
+        self.img_shape = (3, h.shape[0], h.shape[1])
+        self.padded_shape = [nextPow2(2*n - 1) for n in init_shape]
 
-        self.starti = (self.padded_shape[0] - self.init_shape[0])//2
-        self.endi = self.starti + self.init_shape[0]
-        self.startj = (self.padded_shape[1]//2) - (self.init_shape[1]//2)
-        self.endj = self.startj + self.init_shape[1]
+        self.starti = (self.padded_shape[0] - init_shape[0])//2
+        self.endi = self.starti + init_shape[0]
+        self.startj = (self.padded_shape[1]//2) - (init_shape[1]//2)
+        self.endj = self.startj + init_shape[1]
 
         hpad = np.zeros(self.padded_shape)
         hpad[self.starti:self.endi, self.startj:self.endj] = h
@@ -569,37 +570,37 @@ class DeblurringPSF(H_functions):
         return X[self.starti:self.endi, self.startj:self.endj]
 
     def pad(self, v):
-        vpad = np.zeros(self.padded_shape)
+        vpad = np.zeros(self.img_shape)
         vpad[self.starti:self.endi, self.startj:self.endj] = v
         return vpad
 
     def V(self, vec):
-        img = vec.reshape(self.init_shape)
+        img = vec.reshape(self.img_shape)
         return self.crop(fft.fftshift(idct(img, norm="ortho")))
 
     def Vt(self, vec):
-        img = vec.reshape(self.init_shape)
+        img = vec.reshape(self.img_shape)
         return dct(fft.ifftshift(self.pad(img)), norm="ortho")
 
     def U(self, vec):
-        img = vec.reshape(self.init_shape)
+        img = vec.reshape(self.img_shape)
         return self.crop(fft.fftshift(idct(img, norm="ortho")))
 
     def Ut(self, vec):
-        img = vec.reshape(self.init_shape)
+        img = vec.reshape(self.img_shape)
         return dct(fft.ifftshift(self.pad(img)), norm="ortho")
 
     def singulars(self):
         return self._singulars
 
     def H(self, vec):
-        img = vec.reshape(self.init_shape)
+        img = vec.reshape(self.img_shape)
         temp = self.Vt(img)
         singulars = self.singulars()
         return self.U(singulars * temp)
 
     def H_pinv(self, vec):
-        img = vec.reshape(self.init_shape)
+        img = vec.reshape(self.img_shape)
         temp = self.Ut(img)
         singulars = self.singulars()
         return self.V(singulars.I * temp)
