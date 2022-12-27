@@ -551,44 +551,55 @@ def nextPow2(n):
 # Deblurring for Lensless Imaging (https://github.com/Waller-Lab/LenslessLearning)
 class DeblurringPSF(H_functions):
     def __init__(self, h):
-        pixel_start = (np.max(h) + np.min(h))/2
-        x = np.ones(h.shape) * pixel_start
+        self.init_shape = h.shape
+        self.padded_shape = [nextPow2(2*n - 1) for n in self.init_shape]
 
-        init_shape = h.shape
-        padded_shape = [nextPow2(2*n - 1) for n in init_shape]
-        starti = (padded_shape[0]- init_shape[0])//2
-        endi = starti + init_shape[0]
-        startj = (padded_shape[1]//2) - (init_shape[1]//2)
-        endj = startj + init_shape[1]
-        hpad = np.zeros(padded_shape)
-        hpad[starti:endi, startj:endj] = h
+        self.starti = (self.padded_shape[0] - self.init_shape[0])//2
+        self.endi = self.starti + self.init_shape[0]
+        self.startj = (self.padded_shape[1]//2) - (self.init_shape[1]//2)
+        self.endj = self.startj + self.init_shape[1]
+
+        hpad = np.zeros(self.padded_shape)
+        hpad[self.starti:self.endi, self.startj:self.endj] = h
 
         self._singulars = dct(fft.ifftshift(hpad), norm="ortho")
         #self._singulars, self._perm = self._singulars.sort(descending=True)
 
-        self.crop = lambda X: X[starti:endi, startj:endj]
+    def crop(self, X):
+        return X[self.starti:self.endi, self.startj:self.endj]
+
+    def pad(self, v):
+        vpad = np.zeros(self.padded_shape)
+        vpad[self.starti:self.endi, self.startj:self.endj] = v
+        return vpad
 
     def V(self, vec):
-        return self.crop(fft.fftshift(idct(vec)))
+        img = vec.reshape(self.init_shape)
+        return self.crop(fft.fftshift(idct(img, norm="ortho")))
 
     def Vt(self, vec):
-        return dct(fft.ifftshift(vec))
+        img = vec.reshape(self.init_shape)
+        return dct(fft.ifftshift(self.pad(img)), norm="ortho")
 
     def U(self, vec):
-        return self.crop(fft.fftshift(idct(vec)))
+        img = vec.reshape(self.init_shape)
+        return self.crop(fft.fftshift(idct(img, norm="ortho")))
 
     def Ut(self, vec):
-        return dct(fft.ifftshift(vec))
+        img = vec.reshape(self.init_shape)
+        return dct(fft.ifftshift(self.pad(img)), norm="ortho")
 
     def singulars(self):
         return self._singulars
 
     def H(self, vec):
-        temp = self.Vt(vec)
+        img = vec.reshape(self.init_shape)
+        temp = self.Vt(img)
         singulars = self.singulars()
         return self.U(singulars * temp)
 
     def H_pinv(self, vec):
-        temp = self.Ut(vec)
+        img = vec.reshape(self.init_shape)
+        temp = self.Ut(img)
         singulars = self.singulars()
         return self.V(singulars.I * temp)
