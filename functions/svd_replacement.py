@@ -1,7 +1,6 @@
 import torch
 from scipy.fftpack import dct, idct
-import numpy.fft as fft
-import numpy as np
+import torch.fft as fft
 
 class H_functions:
     """
@@ -546,31 +545,31 @@ class Deblurring2D(H_functions):
 
 # Get nearest power of 2 that is larger than input (used for padding)
 def nextPow2(n):
-    return int(2**np.ceil(np.log2(n)))
+    return int(2**torch.ceil(torch.log2(n)))
 
 # Deblurring for Lensless Imaging (https://github.com/Waller-Lab/LenslessLearning)
 class DeblurringPSF(H_functions):
-    def __init__(self, h):
-        init_shape = h.shape
-        self.img_shape = (3, h.shape[0], h.shape[1])
-        self.padded_shape = [nextPow2(2*n - 1) for n in init_shape]
+    def __init__(self, h, channels, device):
+        self.img_shape = h.shape
+        self.channels = channels
+        self.device = device
+        self.padded_shape = [nextPow2(2*n - 1) for n in self.img_shape]
 
-        self.starti = (self.padded_shape[0] - init_shape[0])//2
-        self.endi = self.starti + init_shape[0]
-        self.startj = (self.padded_shape[1]//2) - (init_shape[1]//2)
-        self.endj = self.startj + init_shape[1]
+        self.starti = (self.padded_shape[0] - self.img_shape[0])//2
+        self.endi = self.starti + self.img_shape[0]
+        self.startj = self.padded_shape[1]//2 - self.img_shape[1]//2
+        self.endj = self.startj + self.img_shape[1]
 
-        hpad = np.zeros(self.padded_shape)
+        hpad = torch.zeros(self.padded_shape, device=self.device)
         hpad[self.starti:self.endi, self.startj:self.endj] = h
 
-        self._singulars = dct(fft.ifftshift(hpad), norm="ortho")
-        #self._singulars, self._perm = self._singulars.sort(descending=True)
+        self._singulars = torch.real(fft.fft(fft.ifftshift(hpad)))
 
     def crop(self, X):
         return X[self.starti:self.endi, self.startj:self.endj]
 
     def pad(self, v):
-        vpad = np.zeros(self.img_shape)
+        vpad = torch.zeros(self.img_shape, device=self.device)
         vpad[self.starti:self.endi, self.startj:self.endj] = v
         return vpad
 
@@ -591,7 +590,7 @@ class DeblurringPSF(H_functions):
         return dct(fft.ifftshift(self.pad(img)), norm="ortho")
 
     def singulars(self):
-        return self._singulars
+        return torch.flatten(self._singulars)
 
     def H(self, vec):
         img = vec.reshape(self.img_shape)
