@@ -548,7 +548,7 @@ def nextPow2(n):
     return int(2**torch.ceil(torch.log2(n)))
 
 # Deblurring for Lensless Imaging (https://github.com/Waller-Lab/LenslessLearning)
-class DeblurringPSF(H_functions):
+class Deconvolution(H_functions):
     def __init__(self, h, channels, device):
         self.img_shape = h.shape
         self.channels = channels
@@ -574,32 +574,36 @@ class DeblurringPSF(H_functions):
         return vpad
 
     def V(self, vec):
-        img = vec.reshape(self.img_shape)
-        return self.crop(fft.fftshift(idct(img, norm="ortho")))
+        img = vec.reshape(self.img_shape).detach().cpu().numpy()
+        out = self.crop(fft.fftshift(idct(img, norm="ortho")))
+        return torch.tensor(out, device=self.device)
 
     def Vt(self, vec):
-        img = vec.reshape(self.img_shape)
-        return dct(fft.ifftshift(self.pad(img)), norm="ortho")
+        img = vec.reshape(self.img_shape).detach().cpu().numpy()
+        out = dct(fft.ifftshift(self.pad(img)), norm="ortho")
+        return torch.tensor(out, device=self.device)
 
     def U(self, vec):
-        img = vec.reshape(self.img_shape)
-        return self.crop(fft.fftshift(idct(img, norm="ortho")))
+        img = vec.reshape(self.img_shape).detach().cpu().numpy()
+        out = self.crop(fft.fftshift(idct(img, norm="ortho")))
+        return torch.tensor(out, device=self.device)
 
     def Ut(self, vec):
-        img = vec.reshape(self.img_shape)
-        return dct(fft.ifftshift(self.pad(img)), norm="ortho")
+        img = vec.reshape(self.img_shape).detach().cpu().numpy()
+        out = dct(fft.ifftshift(self.pad(img)), norm="ortho")
+        return torch.tensor(out, device=self.device)
 
     def singulars(self):
-        return torch.flatten(self._singulars)
+        return self._singulars.repeat(3, 1).reshape(-1)
 
     def H(self, vec):
         img = vec.reshape(self.img_shape)
-        temp = self.Vt(img)
+        temp = self.Vt(img).reshape(-1)
         singulars = self.singulars()
         return self.U(singulars * temp)
 
     def H_pinv(self, vec):
         img = vec.reshape(self.img_shape)
-        temp = self.Ut(img)
+        temp = self.Ut(img).reshape(-1)
         singulars = self.singulars()
-        return self.V(singulars.I * temp)
+        return self.V(temp / singulars)

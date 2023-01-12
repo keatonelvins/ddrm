@@ -265,6 +265,10 @@ class Diffusion(object):
         elif deg == 'color':
             from functions.svd_replacement import Colorization
             H_funcs = Colorization(config.data.image_size, self.device)
+        elif deg == 'decon':
+            from functions.svd_replacement import Deconvolution
+            
+            H_funcs = Deconvolution(config.data.channels, self.device)
         else:
             print("ERROR: degradation type not supported")
             quit()
