@@ -5,6 +5,7 @@ import torchvision.transforms as transforms
 import torchvision.transforms.functional as F
 from datasets.celeba import CelebA
 from datasets.lsun import LSUN
+from datasets.diffuser_cam import DiffuserDataset_preprocessed
 from torch.utils.data import Subset
 import numpy as np
 import torchvision
@@ -183,6 +184,10 @@ def get_dataset(args, config):
                 transforms.ToTensor()])
             )
             test_dataset = dataset
+
+    elif config.data.dataset == 'DiffuserCam':
+        dataset = DiffuserDataset_preprocessed(os.path.join(args.exp, 'datasets', 'imagenet'))
+
     else:
         dataset, test_dataset = None, None
 
