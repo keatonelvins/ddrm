@@ -186,7 +186,14 @@ def get_dataset(args, config):
             test_dataset = dataset
 
     elif config.data.dataset == 'DiffuserCam':
-        dataset = DiffuserDataset_preprocessed(os.path.join(args.exp, 'datasets', 'imagenet'))
+        root = os.path.join(args.exp, 'datasets', 'diffuser_cam')
+        dataset = DiffuserDataset_preprocessed(
+            csv_file=os.path.join(root, 'image_names.csv'),
+            data_dir=os.path.join(root, 'diffuser'),
+            label_dir=os.path.join(root, 'lensed'),
+            transform=transforms.Compose([transforms.ToTensor()])
+        )
+        test_dataset = dataset
 
     else:
         dataset, test_dataset = None, None

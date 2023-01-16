@@ -284,8 +284,10 @@ class Diffusion(object):
             x_orig = x_orig.to(self.device)
             x_orig = data_transform(self.config, x_orig)
 
-            y_0 = H_funcs.H(x_orig)
-            y_0 = y_0 + sigma_0 * torch.randn_like(y_0)
+            # Manual degradation
+            # y_0 = H_funcs.H(x_orig)
+            # y_0 = y_0 + sigma_0 * torch.randn_like(y_0)
+            y_0 = classes
 
             pinv_y_0 = H_funcs.H_pinv(y_0).view(y_0.shape[0], config.data.channels, self.config.data.image_size, self.config.data.image_size)
             if deg[:6] == 'deblur': pinv_y_0 = y_0.view(y_0.shape[0], config.data.channels, self.config.data.image_size, self.config.data.image_size)

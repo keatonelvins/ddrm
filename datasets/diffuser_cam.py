@@ -1,6 +1,4 @@
-import torch
 import os
-import PIL
 import numpy as np
 import pandas as pd
 import torch.utils.data as data
@@ -36,14 +34,7 @@ class DiffuserDataset_preprocessed(data.Dataset):
         image = np.load(path_diffuser+'.npy')
         label = np.load(path_gt+'.npy')
 
-        # swap color axis because
-        # numpy image: H x W x C
-        # torch image: C X H X W
-        image = image.transpose((2, 0, 1))
-        label = label.transpose((2, 0, 1))
-
-        sample = {'image': torch.from_numpy(image.copy()).type(torch.FloatTensor),
-                'label': torch.from_numpy(label.copy()).type(torch.FloatTensor)}
+        sample = {'image': image, 'label': label}
 
         if self.transform:
             sample = self.transform(sample)
