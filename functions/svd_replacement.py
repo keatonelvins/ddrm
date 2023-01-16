@@ -545,7 +545,7 @@ class Deblurring2D(H_functions):
 
 # Get nearest power of 2 that is larger than input (used for padding)
 def nextPow2(n):
-    return int(2**torch.ceil(torch.log2(n)))
+    return int(2**torch.ceil(torch.log2(torch.tensor(n))))
 
 # Deblurring for Lensless Imaging (https://github.com/Waller-Lab/LenslessLearning)
 class Deconvolution(H_functions):

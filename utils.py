@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import scipy.stats as st
 import pandas as pd
 import os
-import cv2 as cv
 import scipy
 import skimage
 import time
@@ -36,17 +35,17 @@ def downsample_ax(img, factor):
 
 
 
-def remove_nan_gradients(grads):
-    # Get rid of NaN gradients
-    for g in range(0,len(grads)):
-        if np.any(tf.is_nan(grads[g])):
-            new_grad = tf.where(tf.is_nan(grads[g]), tf.zeros_like(grads[g]), grads[g])
-            grads[g] = new_grad
-    return grads
+# def remove_nan_gradients(grads):
+#     # Get rid of NaN gradients
+#     for g in range(0,len(grads)):
+#         if np.any(tf.is_nan(grads[g])):
+#             new_grad = tf.where(tf.is_nan(grads[g]), tf.zeros_like(grads[g]), grads[g])
+#             grads[g] = new_grad
+#     return grads
 
-def cap_grads_by_norm(grads):
-    capped_grads = [(tf.clip_by_norm(gradcl, 1.)) for gradcl in grads]
-    return capped_grads
+# def cap_grads_by_norm(grads):
+#     capped_grads = [(tf.clip_by_norm(gradcl, 1.)) for gradcl in grads]
+#     return capped_grads
 
 
 def load_psf_image(psf_file, downsample=400, rgb=True):
@@ -63,24 +62,24 @@ def load_psf_image(psf_file, downsample=400, rgb=True):
     
     return(psf_down)
 
-def load_test_image(path):
+# def load_test_image(path):
     
-    testim = cv.imread(path, -1).astype(np.float32)/4095. - 0.008273973
-    testim = downsample_ax(testim, 4)
+#     testim = cv.imread(path, -1).astype(np.float32)/4095. - 0.008273973
+#     testim = downsample_ax(testim, 4)
 
-    image = testim.transpose((2, 0, 1))
-    image = np.expand_dims(image,0)
+#     image = testim.transpose((2, 0, 1))
+#     image = np.expand_dims(image,0)
     
-    return image
+#     return image
     
 
-from IPython import display
-def print_function(x, i):
-    plt.cla()
-    plt.imshow(x)
-    plt.title('iterations: '+ str(i));
-    display.display(plt.gcf())
-    display.clear_output(wait=True)
+# from IPython import display
+# def print_function(x, i):
+#     plt.cla()
+#     plt.imshow(x)
+#     plt.title('iterations: '+ str(i));
+#     display.display(plt.gcf())
+#     display.clear_output(wait=True)
     
     
 def gkern(DIMS0, DIMS1, nsig=3):
@@ -213,23 +212,23 @@ class ToTensor(object):
 
 ##### Run test #####
 
-def save_model_summary(model, admm, filename, device, description, test_loader):
-    #model = model.to(device)
+# def save_model_summary(model, admm, filename, device, description, test_loader):
+#     #model = model.to(device)
 
-    loss_dict = test_training_images(model, admm, test_loader, device)
-    time_gpu= run_timing_test(model, test_loader, device)
+#     loss_dict = test_training_images(model, admm, test_loader, device)
+#     time_gpu= run_timing_test(model, test_loader, device)
 
-    loss_dict['time_gpu'] = time_gpu; #loss_dict['time_cpu'] = time_cpu
+#     loss_dict['time_gpu'] = time_gpu; #loss_dict['time_cpu'] = time_cpu
 
-    loss_dict['filename'] = filename
-    loss_dict['description'] = description
+#     loss_dict['filename'] = filename
+#     loss_dict['description'] = description
 
 
-    save_filename = ('saved_models/saved_stats2/'+loss_dict['filename'])[0:-3]
+#     save_filename = ('saved_models/saved_stats2/'+loss_dict['filename'])[0:-3]
     
-    print('\r', 'Saving as:', save_filename, end = '')
-    scipy.io.savemat(save_filename, loss_dict)
-    return loss_dict
+#     print('\r', 'Saving as:', save_filename, end = '')
+#     scipy.io.savemat(save_filename, loss_dict)
+#     return loss_dict
 
 ##### Plotting functions 
 def preplot(image):

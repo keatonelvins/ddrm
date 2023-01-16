@@ -18,6 +18,8 @@ import torchvision.utils as tvu
 from guided_diffusion.unet import UNetModel
 from guided_diffusion.script_util import create_model, create_classifier, classifier_defaults, args_to_dict
 import random
+from utils import load_psf_image
+import skimage
 
 def get_beta_schedule(beta_schedule, *, beta_start, beta_end, num_diffusion_timesteps):
     def sigmoid(x):
@@ -267,8 +269,13 @@ class Diffusion(object):
             H_funcs = Colorization(config.data.image_size, self.device)
         elif deg == 'decon':
             from functions.svd_replacement import Deconvolution
-            
-            H_funcs = Deconvolution(config.data.channels, self.device)
+            path_diffuser = 'exp/datasets/diffuser_cam/psf.tiff'
+            psf_diffuser = load_psf_image(path_diffuser, downsample=1, rgb=False)
+            psf_diffuser = np.sum(psf_diffuser,2)
+            h = skimage.transform.resize(psf_diffuser, 
+                                        (psf_diffuser.shape[0]//4,psf_diffuser.shape[1]//4), 
+                                        mode='constant', anti_aliasing=True)
+            H_funcs = Deconvolution(h, config.data.channels, self.device)
         else:
             print("ERROR: degradation type not supported")
             quit()
