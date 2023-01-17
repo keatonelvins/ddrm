@@ -192,9 +192,9 @@ class Diffusion(object):
             test_dataset,
             batch_size=config.sampling.batch_size,
             shuffle=True,
-            num_workers=config.data.num_workers,
-            worker_init_fn=seed_worker,
-            generator=g,
+            # num_workers=config.data.num_workers,
+            # worker_init_fn=seed_worker,
+            # generator=g,
         )
         
 
@@ -275,7 +275,7 @@ class Diffusion(object):
             h = skimage.transform.resize(psf_diffuser, 
                                         (psf_diffuser.shape[0]//4,psf_diffuser.shape[1]//4), 
                                         mode='constant', anti_aliasing=True)
-            H_funcs = Deconvolution(h, config.data.channels, self.device)
+            H_funcs = Deconvolution(torch.tensor(h), config.data.channels, self.device)
         else:
             print("ERROR: degradation type not supported")
             quit()

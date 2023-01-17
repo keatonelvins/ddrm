@@ -1,9 +1,9 @@
 import os
 import numpy as np
 import pandas as pd
-import torch.utils.data as data
+from .vision import VisionDataset
 
-class DiffuserDataset_preprocessed(data.Dataset):
+class DiffuserDataset_preprocessed(VisionDataset):
     """Diffuser dataset https://waller-lab.github.io/LenslessLearning/dataset.html"""
 
     def __init__(self, csv_file, data_dir, label_dir, transform=None):
