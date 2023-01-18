@@ -274,6 +274,7 @@ class Diffusion(object):
             h = skimage.transform.resize(psf_diffuser, 
                                         (psf_diffuser.shape[0]//4,psf_diffuser.shape[1]//4), 
                                         mode='constant', anti_aliasing=True)
+            h = h.transpose((2, 0, 1))
             H_funcs = Deconvolution(torch.tensor(h, device=self.device), config.data.channels, self.device)
         else:
             print("ERROR: degradation type not supported")

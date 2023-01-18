@@ -551,17 +551,18 @@ def nextPow2(n):
 class Deconvolution(H_functions):
     def __init__(self, h, channels, device):
         self.img_shape = h.shape
+        self.img_size = torch.numel(h)
         self.channels = channels
         self.device = device
-        self.padded_shape = [nextPow2(2*n - 1) for n in self.img_shape]
+        self.padded_shape = [channels] + [nextPow2(2*n - 1) for n in self.img_shape[1:]]
 
-        self.starti = (self.padded_shape[0] - self.img_shape[0])//2
-        self.endi = self.starti + self.img_shape[0]
-        self.startj = self.padded_shape[1]//2 - self.img_shape[1]//2
-        self.endj = self.startj + self.img_shape[1]
+        self.starti = (self.padded_shape[1] - self.img_shape[1])//2
+        self.endi = self.starti + self.img_shape[1]
+        self.startj = self.padded_shape[2]//2 - self.img_shape[2]//2
+        self.endj = self.startj + self.img_shape[2]
 
         hpad = torch.zeros(self.padded_shape, device=self.device)
-        hpad[self.starti:self.endi, self.startj:self.endj] = h
+        hpad[:, self.starti:self.endi, self.startj:self.endj] = h
 
         self._singulars = torch.real(fft.fft(fft.ifftshift(hpad)))
 
@@ -574,36 +575,39 @@ class Deconvolution(H_functions):
         return vpad
 
     def V(self, vec):
-        img = vec.reshape(self.img_shape).detach().cpu().numpy()
+        batch_size = len(vec) / self.img_size
+        img = vec.reshape((batch_size,) + self.img_shape).detach().cpu().numpy()
         out = self.crop(fft.fftshift(idct(img, norm="ortho")))
         return torch.tensor(out, device=self.device)
 
     def Vt(self, vec):
-        img = vec.reshape(self.img_shape).detach().cpu().numpy()
+        batch_size = len(vec) / self.img_size
+        img = vec.reshape((batch_size,) + self.img_shape).detach().cpu().numpy()
         out = dct(fft.ifftshift(self.pad(img)), norm="ortho")
         return torch.tensor(out, device=self.device)
 
     def U(self, vec):
-        img = vec.reshape(self.img_shape).detach().cpu().numpy()
+        batch_size = len(vec) / self.img_size
+        img = vec.reshape((batch_size,) + self.img_shape).detach().cpu().numpy()
         out = self.crop(fft.fftshift(idct(img, norm="ortho")))
         return torch.tensor(out, device=self.device)
 
     def Ut(self, vec):
-        img = vec.reshape(self.img_shape).detach().cpu().numpy()
+        batch_size = len(vec) / self.img_size
+        img = vec.reshape((batch_size,) + self.img_shape).detach().cpu().numpy()
         out = dct(fft.ifftshift(self.pad(img)), norm="ortho")
         return torch.tensor(out, device=self.device)
 
     def singulars(self):
-        return self._singulars.repeat(3, 1).reshape(-1)
-
+        return self._singulars.reshape(-1)
+    
     def H(self, vec):
-        img = vec.reshape(self.img_shape)
-        temp = self.Vt(img).reshape(-1)
+        temp = self.Vt(vec)
         singulars = self.singulars()
-        return self.U(singulars * temp)
-
+        return self.U(singulars * temp[:, :singulars.shape[0]])
+    
     def H_pinv(self, vec):
-        img = vec.reshape(self.img_shape)
-        temp = self.Ut(img).reshape(-1)
+        temp = self.Ut(vec)
         singulars = self.singulars()
-        return self.V(temp / singulars)
+        temp[:, :singulars.shape[0]] = temp[:, :singulars.shape[0]] / singulars
+        return self.V(temp)

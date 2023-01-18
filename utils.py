@@ -57,7 +57,7 @@ def load_psf_image(psf_file, downsample=400):
     
     psf_down = psf_down/np.linalg.norm(psf_down)
     
-    return(psf_down)
+    return psf_down
 
 # def load_test_image(path):
     
