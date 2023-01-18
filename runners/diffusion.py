@@ -269,13 +269,13 @@ class Diffusion(object):
             H_funcs = Colorization(config.data.image_size, self.device)
         elif deg == 'decon':
             from functions.svd_replacement import Deconvolution
-            path_diffuser = 'exp/datasets/diffuser_cam/psf.tiff'
+            path_diffuser = os.path.join("exp", "datasets", "diffuser_cam", "psf.tiff")
             psf_diffuser = load_psf_image(path_diffuser, downsample=1, rgb=False)
             psf_diffuser = np.sum(psf_diffuser,2)
             h = skimage.transform.resize(psf_diffuser, 
                                         (psf_diffuser.shape[0]//4,psf_diffuser.shape[1]//4), 
                                         mode='constant', anti_aliasing=True)
-            H_funcs = Deconvolution(torch.tensor(h), config.data.channels, self.device)
+            H_funcs = Deconvolution(torch.tensor(h, device=self.device), config.data.channels, self.device)
         else:
             print("ERROR: degradation type not supported")
             quit()
