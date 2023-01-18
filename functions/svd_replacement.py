@@ -545,60 +545,56 @@ class Deblurring2D(H_functions):
 
 # Deblurring for Lensless Imaging (https://github.com/Waller-Lab/LenslessLearning)
 class Deconvolution(H_functions):
-    def mat_by_img(self, M, v):
-        return torch.matmul(M, v.reshape(v.shape[0] * self.channels, self.img_dim,
-                        self.img_dim)).reshape(v.shape[0], self.channels, M.shape[0], self.img_dim)
-
-    def img_by_mat(self, v, M):
-        return torch.matmul(v.reshape(v.shape[0] * self.channels, self.img_dim,
-                        self.img_dim), M).reshape(v.shape[0], self.channels, self.img_dim, M.shape[1])
-
     # Get nearest power of 2 that is larger than input (used for padding)
     def nextPow2(self, n):
         return int(2**torch.ceil(torch.log2(torch.tensor(n))))
                         
     def __init__(self, h, channels, device):
-        self.img_height, self.img_width = h.shape[1:]
+        self.img_shape = h.shape
         self.channels = channels
         self.device = device
-        self.padded_shape = [channels, self.nextPow2(2*self.img_height - 1), self.nextPow2(2*self.img_width - 1)]
+        self.padded_shape = [self.nextPow2(2*n - 1) for n in self.img_shape[1:]]
 
-        self.starti = (self.padded_shape[1] - self.img_height)//2
-        self.endi = self.starti + self.img_height
-        self.startj = self.padded_shape[2]//2 - self.img_width//2
-        self.endj = self.startj + self.img_width
+        self.starti = (self.padded_shape[0] - self.img_shape[1])//2
+        self.endi = self.starti + self.img_shape[1]
+        self.startj = self.padded_shape[1]//2 - self.img_shape[2]//2
+        self.endj = self.startj + self.img_shape[2]
 
-        hpad = torch.zeros(self.padded_shape, device=self.device)
+        hpad = torch.zeros([channels] + self.padded_shape, device=self.device)
         hpad[:, self.starti:self.endi, self.startj:self.endj] = h
 
         self._singulars = torch.real(fft.fft(fft.ifftshift(hpad)))
 
     def crop(self, X):
-        return X[self.starti:self.endi, self.startj:self.endj]
+        return X[:, self.starti:self.endi, self.startj:self.endj]
 
     def pad(self, v):
-        vpad = torch.zeros(self.img_shape, device=self.device)
-        vpad[self.starti:self.endi, self.startj:self.endj] = v
+        vpad = torch.zeros([v.shape[0]] + self.padded_shape, device=self.device)
+        vpad[:, self.starti:self.endi, self.startj:self.endj] = v
         return vpad
 
     def V(self, vec):
-        img = vec.reshape(vec.shape[0] * self.channels, self.img_height, self.img_width)
-        out = self.crop(fft.fftshift(idct(img.detach().cpu().numpy(), norm="ortho")))
-        return torch.tensor(out, device=self.device)
+        img = vec.reshape(vec.shape[0] * self.channels, self.padded_shape[0], self.padded_shape[1])
+        img = idct(img.detach().cpu().numpy(), norm="ortho")
+        out = self.crop(fft.fftshift(torch.tensor(img, device=self.device)))
+        return out.reshape(vec.shape[0], self.channels, self.img_shape[1], self.img_shape[2])
 
     def Vt(self, vec):
-        img = vec.reshape(vec.shape[0] * self.channels, self.img_height, self.img_width)
-        out = dct(fft.ifftshift(self.pad(img.detach().cpu().numpy())), norm="ortho")
+        img = vec.reshape(vec.shape[0] * self.channels, self.img_shape[1], self.img_shape[2])
+        img = fft.ifftshift(self.pad(img)).detach().cpu().numpy()
+        out = dct(img, norm="ortho")
         return torch.tensor(out, device=self.device)
 
     def U(self, vec):
-        img = vec.reshape(vec.shape[0] * self.channels, self.img_height, self.img_width)
-        out = self.crop(fft.fftshift(idct(img.detach().cpu().numpy(), norm="ortho")))
-        return torch.tensor(out, device=self.device)
+        img = vec.reshape(vec.shape[0] * self.channels, self.padded_shape[0], self.padded_shape[1])
+        img = idct(img.detach().cpu().numpy(), norm="ortho")
+        out = self.crop(fft.fftshift(torch.tensor(img, device=self.device)))
+        return out.reshape(vec.shape[0], self.channels, self.img_shape[1], self.img_shape[2])
 
     def Ut(self, vec):
-        img = vec.reshape(vec.shape[0] * self.channels, self.img_height, self.img_width)
-        out = dct(fft.ifftshift(self.pad(img.detach().cpu().numpy())), norm="ortho")
+        img = vec.reshape(vec.shape[0] * self.channels, self.img_shape[1], self.img_shape[2])
+        img = fft.ifftshift(self.pad(img)).detach().cpu().numpy()
+        out = dct(img, norm="ortho")
         return torch.tensor(out, device=self.device)
 
     def singulars(self):
@@ -606,11 +602,11 @@ class Deconvolution(H_functions):
     
     def H(self, vec):
         temp = self.Vt(vec)
-        singulars = self.singulars()
-        return self.U(singulars * temp[:, :singulars.shape[0]])
+        singulars = self.singulars()[None, :]
+        return self.U(singulars * temp)
     
     def H_pinv(self, vec):
-        temp = self.Ut(vec)
-        singulars = self.singulars()
-        temp[:, :singulars.shape[0]] = temp[:, :singulars.shape[0]] / singulars
+        temp = self.Ut(vec).reshape(vec.shape[0], self.channels * self.padded_shape[0] * self.padded_shape[1])
+        singulars = self.singulars()[None, :]
+        temp = temp / singulars
         return self.V(temp)

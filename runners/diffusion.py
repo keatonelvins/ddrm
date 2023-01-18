@@ -269,11 +269,13 @@ class Diffusion(object):
             H_funcs = Colorization(config.data.image_size, self.device)
         elif deg == 'decon':
             from functions.svd_replacement import Deconvolution
+            # Load psf and resize to match images
             path_diffuser = os.path.join("exp", "datasets", "diffuser_cam", "psf.tiff")
             psf_diffuser = load_psf_image(path_diffuser, downsample=1)
             h = skimage.transform.resize(psf_diffuser, 
                                         (psf_diffuser.shape[0]//4,psf_diffuser.shape[1]//4), 
                                         mode='constant', anti_aliasing=True)
+            # numpy is (H, W, C), transpose to match pytorch (C, H, W)
             h = h.transpose((2, 0, 1))
             H_funcs = Deconvolution(torch.tensor(h, device=self.device), config.data.channels, self.device)
         else:
@@ -298,7 +300,8 @@ class Diffusion(object):
             y_0 = classes.to(self.device)
             y_0 = data_transform(self.config, y_0)
 
-            pinv_y_0 = H_funcs.H_pinv(y_0).view(y_0.shape[0], config.data.channels, self.config.data.image_size, self.config.data.image_size)
+            # pinv_y_0 = H_funcs.H_pinv(y_0).view(y_0.shape[0], config.data.channels, self.config.data.image_size, self.config.data.image_size)
+            pinv_y_0 = H_funcs.H_pinv(y_0).view(y_0.shape[0], config.data.channels, self.config.data.image_height, self.config.data.image_width)
             if deg[:6] == 'deblur': pinv_y_0 = y_0.view(y_0.shape[0], config.data.channels, self.config.data.image_size, self.config.data.image_size)
             elif deg == 'color': pinv_y_0 = y_0.view(y_0.shape[0], 1, self.config.data.image_size, self.config.data.image_size).repeat(1, 3, 1, 1)
             elif deg[:3] == 'inp': pinv_y_0 += H_funcs.H_pinv(H_funcs.H(torch.ones_like(pinv_y_0))).reshape(*pinv_y_0.shape) - 1
@@ -315,8 +318,8 @@ class Diffusion(object):
             x = torch.randn(
                 y_0.shape[0],
                 config.data.channels,
-                config.data.image_size,
-                config.data.image_size,
+                config.data.image_height,
+                config.data.image_width,
                 device=self.device,
             )
 
