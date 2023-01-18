@@ -48,12 +48,9 @@ def downsample_ax(img, factor):
 #     return capped_grads
 
 
-def load_psf_image(psf_file, downsample=400, rgb=True):
+def load_psf_image(psf_file, downsample=400):
 
-    if rgb==True:
-        my_psf = rgb2gray(np.array(Image.open(psf_file)))
-    else:
-        my_psf = np.array(Image.open(psf_file))
+    my_psf = np.array(Image.open(psf_file))
         
     psf_bg = np.mean(my_psf[0 : 15, 0 : 15])             #102
     psf_down = downsample_ax(my_psf - psf_bg, downsample)

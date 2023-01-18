@@ -270,8 +270,7 @@ class Diffusion(object):
         elif deg == 'decon':
             from functions.svd_replacement import Deconvolution
             path_diffuser = os.path.join("exp", "datasets", "diffuser_cam", "psf.tiff")
-            psf_diffuser = load_psf_image(path_diffuser, downsample=1, rgb=False)
-            psf_diffuser = np.sum(psf_diffuser,2)
+            psf_diffuser = load_psf_image(path_diffuser, downsample=1)
             h = skimage.transform.resize(psf_diffuser, 
                                         (psf_diffuser.shape[0]//4,psf_diffuser.shape[1]//4), 
                                         mode='constant', anti_aliasing=True)
@@ -291,10 +290,12 @@ class Diffusion(object):
             x_orig = x_orig.to(self.device)
             x_orig = data_transform(self.config, x_orig)
 
-            # Manual degradation
+            # Manual degradation:
             # y_0 = H_funcs.H(x_orig)
             # y_0 = y_0 + sigma_0 * torch.randn_like(y_0)
-            y_0 = classes
+
+            y_0 = classes.to(self.device)
+            y_0 = data_transform(self.config, y_0)
 
             pinv_y_0 = H_funcs.H_pinv(y_0).view(y_0.shape[0], config.data.channels, self.config.data.image_size, self.config.data.image_size)
             if deg[:6] == 'deblur': pinv_y_0 = y_0.view(y_0.shape[0], config.data.channels, self.config.data.image_size, self.config.data.image_size)
