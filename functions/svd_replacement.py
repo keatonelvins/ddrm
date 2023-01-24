@@ -1,5 +1,5 @@
 import torch
-from scipy.fftpack import dct, idct
+from scipy.fftpack import dctn, idctn
 import torch.fft as fft
 
 class H_functions:
@@ -563,38 +563,38 @@ class Deconvolution(H_functions):
         hpad = torch.zeros([channels] + self.padded_shape, device=self.device)
         hpad[:, self.starti:self.endi, self.startj:self.endj] = h
 
-        self._singulars = torch.real(fft.fft(fft.ifftshift(hpad)))
+        self._singulars = torch.real(fft.fft2(fft.ifftshift(hpad)))
 
     def crop(self, X):
-        return X[:, self.starti:self.endi, self.startj:self.endj]
+        return X[:, :, self.starti:self.endi, self.startj:self.endj]
 
     def pad(self, v):
-        vpad = torch.zeros([v.shape[0]] + self.padded_shape, device=self.device)
-        vpad[:, self.starti:self.endi, self.startj:self.endj] = v
+        vpad = torch.zeros([v.shape[:2]] + self.padded_shape, device=self.device)
+        vpad[:, :, self.starti:self.endi, self.startj:self.endj] = v
         return vpad
 
     def V(self, vec):
-        img = vec.reshape(vec.shape[0] * self.channels, self.padded_shape[0], self.padded_shape[1])
-        img = idct(img.detach().cpu().numpy(), norm="ortho")
-        out = self.crop(fft.fftshift(torch.tensor(img, device=self.device)))
-        return out.reshape(vec.shape[0], self.channels, self.img_shape[1], self.img_shape[2])
+        temp = vec.reshape(vec.shape[0], self.channels, self.padded_shape[0], self.padded_shape[1])
+        temp = idctn(temp.detach().cpu().numpy(), norm="ortho", axes=(-2, -1))
+        out = fft.fftshift(torch.tensor(temp, device=self.device))
+        return out
 
     def Vt(self, vec):
-        img = vec.reshape(vec.shape[0] * self.channels, self.img_shape[1], self.img_shape[2])
-        img = fft.ifftshift(self.pad(img)).detach().cpu().numpy()
-        out = dct(img, norm="ortho")
+        temp = vec.reshape(vec.shape[0], self.channels, self.padded_shape[0], self.padded_shape[1])
+        temp = fft.ifftshift(temp).detach().cpu().numpy()
+        out = dctn(temp, norm="ortho", axes=(-2, -1))
         return torch.tensor(out, device=self.device)
 
     def U(self, vec):
-        img = vec.reshape(vec.shape[0] * self.channels, self.padded_shape[0], self.padded_shape[1])
-        img = idct(img.detach().cpu().numpy(), norm="ortho")
-        out = self.crop(fft.fftshift(torch.tensor(img, device=self.device)))
-        return out.reshape(vec.shape[0], self.channels, self.img_shape[1], self.img_shape[2])
+        temp = vec.reshape(vec.shape[0], self.channels, self.padded_shape[0], self.padded_shape[1])
+        temp = idctn(temp.detach().cpu().numpy(), norm="ortho", axes=(-2, -1))
+        out = fft.fftshift(torch.tensor(temp, device=self.device))
+        return out
 
     def Ut(self, vec):
-        img = vec.reshape(vec.shape[0] * self.channels, self.img_shape[1], self.img_shape[2])
-        img = fft.ifftshift(self.pad(img)).detach().cpu().numpy()
-        out = dct(img, norm="ortho")
+        temp = vec.reshape(vec.shape[0], self.channels, self.padded_shape[0], self.padded_shape[1])
+        temp = fft.ifftshift(temp).detach().cpu().numpy()
+        out = dctn(temp, norm="ortho", axes=(-2, -1))
         return torch.tensor(out, device=self.device)
 
     def singulars(self):

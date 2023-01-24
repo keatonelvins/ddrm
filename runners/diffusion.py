@@ -325,7 +325,7 @@ class Diffusion(object):
 
             # NOTE: This means that we are producing each predicted x0, not x_{t-1} at timestep t.
             with torch.no_grad():
-                x, _ = self.sample_image(x, model, H_funcs, y_0, sigma_0, last=False, cls_fn=cls_fn, classes=classes)
+                x, _ = self.sample_image(x, model, H_funcs, y_0, sigma_0, last=False, cls_fn=cls_fn, classes=None)
 
             x = [inverse_data_transform(config, y) for y in x]
 
@@ -351,9 +351,12 @@ class Diffusion(object):
     def sample_image(self, x, model, H_funcs, y_0, sigma_0, last=True, cls_fn=None, classes=None):
         skip = self.num_timesteps // self.args.timesteps
         seq = range(0, self.num_timesteps, skip)
+
+        x = H_funcs.pad(x)
+        y_0 = H_funcs.pad(y_0)
         
         x = efficient_generalized_steps(x, seq, model, self.betas, H_funcs, y_0, sigma_0, \
             etaB=self.args.etaB, etaA=self.args.eta, etaC=self.args.eta, cls_fn=cls_fn, classes=classes)
         if last:
             x = x[0][-1]
-        return x
+        return H_funcs.crop(x)

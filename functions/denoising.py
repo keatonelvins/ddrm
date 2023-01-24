@@ -50,14 +50,16 @@ def efficient_generalized_steps(x, seq, model, b, H_funcs, y_0, sigma_0, etaB, e
             at_next = compute_alpha(b, next_t.long())
             xt = xs[-1].to('cuda')
             if cls_fn == None:
-                et = model(xt, t)
+                et = model(H_funcs.crop(xt), t)
             else:
-                et = model(xt, t, classes)
+                et = model(H_funcs.crop(xt), t, classes)
                 et = et[:, :3]
                 et = et - (1 - at).sqrt()[0,0,0,0] * cls_fn(x,t,classes)
             
             if et.size(1) == 6:
                 et = et[:, :3]
+
+            et = H_funcs.pad(et)
             
             x0_t = (xt - et * (1 - at).sqrt()) / at.sqrt()
 
