@@ -40,7 +40,7 @@ def efficient_generalized_steps(x, seq, model, b, H_funcs, y_0, sigma_0, etaB, e
         n = x.size(0)
         seq_next = [-1] + list(seq[:-1])
         x0_preds = []
-        xs = [x]
+        xs = [H_funcs.crop(x)]
 
         #iterate over the timesteps
         for i, j in tqdm(zip(reversed(seq), reversed(seq_next))):
@@ -50,15 +50,16 @@ def efficient_generalized_steps(x, seq, model, b, H_funcs, y_0, sigma_0, etaB, e
             at_next = compute_alpha(b, next_t.long())
             xt = xs[-1].to('cuda')
             if cls_fn == None:
-                et = model(H_funcs.crop(xt), t)
+                et = model(xt, t)
             else:
-                et = model(H_funcs.crop(xt), t, classes)
+                et = model(xt, t, classes)
                 et = et[:, :3]
                 et = et - (1 - at).sqrt()[0,0,0,0] * cls_fn(x,t,classes)
             
             if et.size(1) == 6:
                 et = et[:, :3]
 
+            xt = H_funcs.pad(xt)
             et = H_funcs.pad(et)
             
             x0_t = (xt - et * (1 - at).sqrt()) / at.sqrt()
@@ -100,6 +101,9 @@ def efficient_generalized_steps(x, seq, model, b, H_funcs, y_0, sigma_0, etaB, e
             #aggregate all 3 cases and give next prediction
             xt_mod_next = H_funcs.V(Vt_xt_mod_next)
             xt_next = (at_next.sqrt()[0, 0, 0, 0] * xt_mod_next).view(*x.shape)
+
+            x0_t = H_funcs.crop(x0_t)
+            xt_next = H_funcs.crop(xt_next)
 
             x0_preds.append(x0_t.to('cpu'))
             xs.append(xt_next.to('cpu'))

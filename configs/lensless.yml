@@ -1,8 +1,7 @@
 data:
     dataset: "DiffuserCam"
-    image_height: 270
-    image_width: 480
     image_size: 256
+    psf_size: 1024
     channels: 3
     logit_transform: false
     uniform_dequantization: false

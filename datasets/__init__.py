@@ -191,7 +191,7 @@ def get_dataset(args, config):
             csv_file=os.path.join(root, 'image_names.csv'),
             data_dir=os.path.join(root, 'diffuser'),
             label_dir=os.path.join(root, 'lensed'),
-            transform=transforms.Compose([transforms.ToTensor()])
+            transform=transforms.Compose([transforms.ToTensor(), transforms.CenterCrop(config.data.image_size)])
         )
         test_dataset = dataset
 

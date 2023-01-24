@@ -7,6 +7,7 @@ import numpy as np
 import tqdm
 import torch
 import torch.utils.data as data
+import torchvision.transforms as transforms
 
 from models.diffusion import Model
 from datasets import get_dataset, data_transform, inverse_data_transform
@@ -271,11 +272,17 @@ class Diffusion(object):
             from functions.svd_replacement import Deconvolution
             # Load psf and resize to match images
             path_diffuser = os.path.join("exp", "datasets", "diffuser_cam", "psf.tiff")
-            psf_diffuser = load_psf_image(path_diffuser, downsample=1)
-            h = skimage.transform.resize(psf_diffuser, 
-                                        (psf_diffuser.shape[0]//4,psf_diffuser.shape[1]//4),
+            h = load_psf_image(path_diffuser, downsample=1)
+
+            start_row = (h.shape[0] - config.data.psf_size) // 2
+            end_row = start_row + config.data.psf_size
+            start_col = (h.shape[1] - config.data.psf_size) // 2
+            end_col = start_col + config.data.psf_size
+            h = h[start_row:end_row, start_col:end_col]
+
+            h = skimage.transform.resize(h, 
+                                        (h.shape[0]//4,h.shape[1]//4),
                                         mode='constant', anti_aliasing=True)
-            # numpy is (H, W, C), transpose to match pytorch (C, H, W)
             h = h.transpose((2, 0, 1))
             H_funcs = Deconvolution(torch.tensor(h, device=self.device), config.data.channels, self.device)
         else:
@@ -319,8 +326,8 @@ class Diffusion(object):
             x = torch.randn(
                 y_0.shape[0],
                 config.data.channels,
-                config.data.image_height,
-                config.data.image_width,
+                config.data.image_size,
+                config.data.image_size,
                 device=self.device,
             )
             x = H_funcs.pad(x)
