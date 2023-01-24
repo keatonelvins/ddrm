@@ -104,5 +104,4 @@ def efficient_generalized_steps(x, seq, model, b, H_funcs, y_0, sigma_0, etaB, e
             x0_preds.append(x0_t.to('cpu'))
             xs.append(xt_next.to('cpu'))
 
-
     return xs, x0_preds

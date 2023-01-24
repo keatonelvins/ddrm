@@ -273,7 +273,7 @@ class Diffusion(object):
             path_diffuser = os.path.join("exp", "datasets", "diffuser_cam", "psf.tiff")
             psf_diffuser = load_psf_image(path_diffuser, downsample=1)
             h = skimage.transform.resize(psf_diffuser, 
-                                        (psf_diffuser.shape[0]//4,psf_diffuser.shape[1]//4), 
+                                        (psf_diffuser.shape[0]//4,psf_diffuser.shape[1]//4),
                                         mode='constant', anti_aliasing=True)
             # numpy is (H, W, C), transpose to match pytorch (C, H, W)
             h = h.transpose((2, 0, 1))
@@ -299,12 +299,13 @@ class Diffusion(object):
 
             y_0 = classes.to(self.device)
             y_0 = data_transform(self.config, y_0)
+            y_0 = H_funcs.pad(y_0)
 
             # pinv_y_0 = H_funcs.H_pinv(y_0).view(y_0.shape[0], config.data.channels, self.config.data.image_size, self.config.data.image_size)
-            pinv_y_0 = H_funcs.H_pinv(y_0).view(y_0.shape[0], config.data.channels, self.config.data.image_height, self.config.data.image_width)
-            if deg[:6] == 'deblur': pinv_y_0 = y_0.view(y_0.shape[0], config.data.channels, self.config.data.image_size, self.config.data.image_size)
-            elif deg == 'color': pinv_y_0 = y_0.view(y_0.shape[0], 1, self.config.data.image_size, self.config.data.image_size).repeat(1, 3, 1, 1)
-            elif deg[:3] == 'inp': pinv_y_0 += H_funcs.H_pinv(H_funcs.H(torch.ones_like(pinv_y_0))).reshape(*pinv_y_0.shape) - 1
+            pinv_y_0 = H_funcs.H_pinv(y_0).view(y_0.shape[0], config.data.channels, H_funcs.padded_shape[0], H_funcs.padded_shape[1])
+            # if deg[:6] == 'deblur': pinv_y_0 = y_0.view(y_0.shape[0], config.data.channels, self.config.data.image_size, self.config.data.image_size)
+            # elif deg == 'color': pinv_y_0 = y_0.view(y_0.shape[0], 1, self.config.data.image_size, self.config.data.image_size).repeat(1, 3, 1, 1)
+            # elif deg[:3] == 'inp': pinv_y_0 += H_funcs.H_pinv(H_funcs.H(torch.ones_like(pinv_y_0))).reshape(*pinv_y_0.shape) - 1
 
             for i in range(len(pinv_y_0)):
                 tvu.save_image(
@@ -322,6 +323,7 @@ class Diffusion(object):
                 config.data.image_width,
                 device=self.device,
             )
+            x = H_funcs.pad(x)
 
             # NOTE: This means that we are producing each predicted x0, not x_{t-1} at timestep t.
             with torch.no_grad():
@@ -351,12 +353,9 @@ class Diffusion(object):
     def sample_image(self, x, model, H_funcs, y_0, sigma_0, last=True, cls_fn=None, classes=None):
         skip = self.num_timesteps // self.args.timesteps
         seq = range(0, self.num_timesteps, skip)
-
-        x = H_funcs.pad(x)
-        y_0 = H_funcs.pad(y_0)
         
         x = efficient_generalized_steps(x, seq, model, self.betas, H_funcs, y_0, sigma_0, \
             etaB=self.args.etaB, etaA=self.args.eta, etaC=self.args.eta, cls_fn=cls_fn, classes=classes)
         if last:
             x = x[0][-1]
-        return H_funcs.crop(x)
+        return x

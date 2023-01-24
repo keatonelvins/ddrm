@@ -1,5 +1,5 @@
 import torch
-from scipy.fftpack import dctn, idctn
+from scipy.fftpack import dct, idct
 import torch.fft as fft
 
 class H_functions:
@@ -563,39 +563,39 @@ class Deconvolution(H_functions):
         hpad = torch.zeros([channels] + self.padded_shape, device=self.device)
         hpad[:, self.starti:self.endi, self.startj:self.endj] = h
 
-        self._singulars = torch.real(fft.fft2(fft.ifftshift(hpad)))
+        self._singulars = torch.real(fft.fft2(fft.ifftshift(hpad), norm="ortho"))
 
     def crop(self, X):
         return X[:, :, self.starti:self.endi, self.startj:self.endj]
 
     def pad(self, v):
-        vpad = torch.zeros([v.shape[:2]] + self.padded_shape, device=self.device)
+        vpad = torch.zeros([v.shape[0], self.channels] + self.padded_shape, device=self.device)
         vpad[:, :, self.starti:self.endi, self.startj:self.endj] = v
         return vpad
 
     def V(self, vec):
-        temp = vec.reshape(vec.shape[0], self.channels, self.padded_shape[0], self.padded_shape[1])
-        temp = idctn(temp.detach().cpu().numpy(), norm="ortho", axes=(-2, -1))
+        temp = vec.reshape(vec.shape[0], self.channels, self.padded_shape[0] * self.padded_shape[1])
+        temp = idct(temp.detach().cpu().numpy(), norm="ortho")
         out = fft.fftshift(torch.tensor(temp, device=self.device))
-        return out
+        return out.reshape(vec.shape[0], self.channels * self.padded_shape[0] * self.padded_shape[1])
 
     def Vt(self, vec):
-        temp = vec.reshape(vec.shape[0], self.channels, self.padded_shape[0], self.padded_shape[1])
+        temp = vec.reshape(vec.shape[0], self.channels, self.padded_shape[0] * self.padded_shape[1])
         temp = fft.ifftshift(temp).detach().cpu().numpy()
-        out = dctn(temp, norm="ortho", axes=(-2, -1))
-        return torch.tensor(out, device=self.device)
+        out = torch.tensor(dct(temp, norm="ortho"), device=self.device)
+        return out.reshape(vec.shape[0], self.channels * self.padded_shape[0] * self.padded_shape[1])
 
     def U(self, vec):
-        temp = vec.reshape(vec.shape[0], self.channels, self.padded_shape[0], self.padded_shape[1])
-        temp = idctn(temp.detach().cpu().numpy(), norm="ortho", axes=(-2, -1))
+        temp = vec.reshape(vec.shape[0], self.channels, self.padded_shape[0] * self.padded_shape[1])
+        temp = idct(temp.detach().cpu().numpy(), norm="ortho")
         out = fft.fftshift(torch.tensor(temp, device=self.device))
-        return out
+        return out.reshape(vec.shape[0], self.channels * self.padded_shape[0] * self.padded_shape[1])
 
     def Ut(self, vec):
-        temp = vec.reshape(vec.shape[0], self.channels, self.padded_shape[0], self.padded_shape[1])
+        temp = vec.reshape(vec.shape[0], self.channels, self.padded_shape[0] * self.padded_shape[1])
         temp = fft.ifftshift(temp).detach().cpu().numpy()
-        out = dctn(temp, norm="ortho", axes=(-2, -1))
-        return torch.tensor(out, device=self.device)
+        out = torch.tensor(dct(temp, norm="ortho"), device=self.device)
+        return out.reshape(vec.shape[0], self.channels * self.padded_shape[0] * self.padded_shape[1])
 
     def singulars(self):
         return self._singulars.reshape(-1)
@@ -606,7 +606,7 @@ class Deconvolution(H_functions):
         return self.U(singulars * temp)
     
     def H_pinv(self, vec):
-        temp = self.Ut(vec).reshape(vec.shape[0], self.channels * self.padded_shape[0] * self.padded_shape[1])
+        temp = self.Ut(vec)
         singulars = self.singulars()[None, :]
         temp = temp / singulars
         return self.V(temp)
