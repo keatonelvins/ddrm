@@ -34,10 +34,16 @@ class DiffuserDataset_preprocessed(VisionDataset):
         image = np.load(path_diffuser+'.npy')
         label = np.load(path_gt+'.npy')
 
+        image = image[:-58,62:-18,:]
+        label = label[:-58,62:-18,:]
+
         # sample = {'image': image, 'label': label}
+
+        # image = image.transpose((2, 0, 1))
+        # label = label.transpose((2, 0, 1))
 
         if self.transform:
             image = self.transform(image)
             label = self.transform(label)
 
-        return image, label
+        return label, image

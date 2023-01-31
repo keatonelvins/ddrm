@@ -6,7 +6,7 @@ data:
     logit_transform: false
     uniform_dequantization: false
     gaussian_dequantization: false
-    random_flip: true
+    random_flip: false
     rescaled: true
     num_workers: 32
     subset_1k: True
@@ -40,5 +40,5 @@ diffusion:
     num_diffusion_timesteps: 1000
 
 sampling:
-    batch_size: 9
+    batch_size: 1
     last_only: True
