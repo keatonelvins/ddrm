@@ -274,15 +274,15 @@ class Diffusion(object):
             path_diffuser = os.path.join("exp", "datasets", "diffuser_cam", "psf.tiff")
             h = load_psf_image(path_diffuser, downsample=1)
 
+            # Crop psf to psf_size
             start_row = (h.shape[0] - config.data.psf_size) // 2
             end_row = start_row + config.data.psf_size
             start_col = (h.shape[1] - config.data.psf_size) // 2
             end_col = start_col + config.data.psf_size
             h = h[start_row:end_row, start_col:end_col]
 
-            scale = config.data.psf_size / config.data.image_size
             h = skimage.transform.resize(h, 
-                                        (h.shape[0]//scale,h.shape[1]//scale),
+                                        (config.data.image_size, config.data.image_size),
                                         mode='constant', anti_aliasing=True)
             h = h.transpose((2, 0, 1))
             H_funcs = Deconvolution(torch.tensor(h, device=self.device), config.data.channels, self.device)
@@ -307,12 +307,6 @@ class Diffusion(object):
 
             y_0 = classes.to(self.device)
             y_0 = data_transform(self.config, y_0)
-
-            # pinv_y_0 = H_funcs.H_pinv(y_0).view(y_0.shape[0], config.data.channels, self.config.data.image_size, self.config.data.image_size)
-            # pinv_y_0 = H_funcs.H_pinv(y_0).view(y_0.shape[0], config.data.channels, H_funcs.padded_shape[0], H_funcs.padded_shape[1])
-            # if deg[:6] == 'deblur': pinv_y_0 = y_0.view(y_0.shape[0], config.data.channels, self.config.data.image_size, self.config.data.image_size)
-            # elif deg == 'color': pinv_y_0 = y_0.view(y_0.shape[0], 1, self.config.data.image_size, self.config.data.image_size).repeat(1, 3, 1, 1)
-            # elif deg[:3] == 'inp': pinv_y_0 += H_funcs.H_pinv(H_funcs.H(torch.ones_like(pinv_y_0))).reshape(*pinv_y_0.shape) - 1
 
             for i in range(len(y_0)):
                 tvu.save_image(

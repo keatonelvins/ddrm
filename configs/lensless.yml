@@ -1,6 +1,6 @@
 data:
     dataset: "DiffuserCam"
-    image_size: 256
+    image_size: 128
     psf_size: 1024
     channels: 3
     logit_transform: false

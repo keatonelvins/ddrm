@@ -1,5 +1,5 @@
 import torch
-from scipy.fftpack import dct, idct
+from scipy.fftpack import dctn, idctn
 import torch.fft as fft
 
 class H_functions:
@@ -574,27 +574,27 @@ class Deconvolution(H_functions):
         return vpad
 
     def V(self, vec):
-        temp = vec.reshape(vec.shape[0], self.channels, self.padded_shape[0] * self.padded_shape[1])
-        temp = idct(temp.detach().cpu().numpy(), norm="ortho")
+        temp = vec.reshape(vec.shape[0], self.channels, self.padded_shape[0], self.padded_shape[1])
+        temp = idctn(temp.detach().cpu().numpy(), norm="ortho", axes=(-2, -1))
         out = fft.fftshift(torch.tensor(temp, device=self.device))
         return out.reshape(vec.shape[0], self.channels * self.padded_shape[0] * self.padded_shape[1])
 
     def Vt(self, vec):
-        temp = vec.reshape(vec.shape[0], self.channels, self.padded_shape[0] * self.padded_shape[1])
+        temp = vec.reshape(vec.shape[0], self.channels, self.padded_shape[0], self.padded_shape[1])
         temp = fft.ifftshift(temp).detach().cpu().numpy()
-        out = torch.tensor(dct(temp, norm="ortho"), device=self.device)
+        out = torch.tensor(dctn(temp, norm="ortho", axes=(-2, -1)), device=self.device)
         return out.reshape(vec.shape[0], self.channels * self.padded_shape[0] * self.padded_shape[1])
 
     def U(self, vec):
-        temp = vec.reshape(vec.shape[0], self.channels, self.padded_shape[0] * self.padded_shape[1])
-        temp = idct(temp.detach().cpu().numpy(), norm="ortho")
+        temp = vec.reshape(vec.shape[0], self.channels, self.padded_shape[0], self.padded_shape[1])
+        temp = idctn(temp.detach().cpu().numpy(), norm="ortho", axes=(-2, -1))
         out = fft.fftshift(torch.tensor(temp, device=self.device))
         return out.reshape(vec.shape[0], self.channels * self.padded_shape[0] * self.padded_shape[1])
 
     def Ut(self, vec):
-        temp = vec.reshape(vec.shape[0], self.channels, self.padded_shape[0] * self.padded_shape[1])
+        temp = vec.reshape(vec.shape[0], self.channels, self.padded_shape[0], self.padded_shape[1])
         temp = fft.ifftshift(temp).detach().cpu().numpy()
-        out = torch.tensor(dct(temp, norm="ortho"), device=self.device)
+        out = torch.tensor(dctn(temp, norm="ortho", axes=(-2, -1)), device=self.device)
         return out.reshape(vec.shape[0], self.channels * self.padded_shape[0] * self.padded_shape[1])
 
     def singulars(self):
