@@ -87,6 +87,11 @@ Bedroom noisy 4x super-resolution:
 python main.py --ni --config bedroom.yml --doc bedroom --timesteps 20 --eta 0.85 --etaB 1 --deg sr4 --sigma_0 0.05 -i bedroom_sr4_sigma_0.05
 ```
 
+Deconvolution Example:
+```
+python main.py --ni --config lensless.yml --doc diffusion_cam --timesteps 20 --eta 0.85 --etaB 1 --deg decon --sigma_0 0.0
+```
+
 ## References and Acknowledgements
 ```
 @inproceedings{kawar2022denoising,
