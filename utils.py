@@ -8,7 +8,6 @@ import scipy
 import skimage
 import time
 import torch
-import tensorflow as tf
 
 
 def rgb2gray(rgb):
